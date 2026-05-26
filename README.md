@@ -1,372 +1,146 @@
-# Отчет по лабораторной работе №5
+# GoogleTest
 
-**Студент:** Tagir-iu
-**Тема:** Модульное тестирование с GTest и Coveralls.io
+### Announcements
 
+#### Live at Head
 
-## 1. Цель работы
+GoogleTest now follows the
+[Abseil Live at Head philosophy](https://abseil.io/about/philosophy#upgrade-support).
+We recommend
+[updating to the latest commit in the `main` branch as often as possible](https://github.com/abseil/abseil-cpp/blob/master/FAQ.md#what-is-live-at-head-and-how-do-i-do-it).
+We do publish occasional semantic versions, tagged with
+`v${major}.${minor}.${patch}` (e.g. `v1.13.0`).
 
-Научиться использовать фреймворк Google Test для модульного тестирования C++ проектов,
-настроить непрерывную интеграцию (CI) через GitHub Actions и сервис Coveralls.io
-для отслеживания покрытия кода.
+#### Documentation Updates
 
+Our documentation is now live on GitHub Pages at
+https://google.github.io/googletest/. We recommend browsing the documentation on
+GitHub Pages rather than directly in the repository.
 
-## 2. Выполнение работы
+#### Release 1.13.0
 
-### 2.1. Добавление Google Test
+[Release 1.13.0](https://github.com/google/googletest/releases/tag/v1.13.0) is
+now available.
 
-В проект был добавлен Google Test как git submodule:
+The 1.13.x branch requires at least C++14.
 
-mkdir -p third-party
-git submodule add https://github.com/google/googletest third-party/gtest
-cd third-party/gtest && git checkout release-1.8.1 && cd ../..
+#### Continuous Integration
 
-### 2.2. Создание библиотеки banking
+We use Google's internal systems for continuous integration. \
+GitHub Actions were added for the convenience of open-source contributors. They
+are exclusively maintained by the open-source community and not used by the
+GoogleTest team.
 
-Структура библиотеки:
-```
-banking/
-├── Account.h         # класс банковского счета
-├── Account.cpp       # реализация методов счета
-├── Transaction.h     # класс транзакции
-├── Transaction.cpp   # реализация транзакции
-└── CMakeLists.txt    # сборка библиотеки
-```
-#### Account.h
-```
-#pragma once
-#include <string>
+#### Coming Soon
 
-class Account {
-private:
-    std::string id;
-    double balance;
-public:
-    Account(const std::string& id, double initialBalance = 0.0);
-    void deposit(double amount);
-    bool withdraw(double amount);
-    double getBalance() const;
-    std::string getId() const;
-};
-```
-#### Account.cpp
-```
-#include "Account.h"
-#include <stdexcept>
+*   We are planning to take a dependency on
+    [Abseil](https://github.com/abseil/abseil-cpp).
+*   More documentation improvements are planned.
 
-Account::Account(const std::string& id, double initialBalance)
-    : id(id), balance(initialBalance) {}
+## Welcome to **GoogleTest**, Google's C++ test framework!
 
-void Account::deposit(double amount) {
-    if (amount <= 0) {
-        throw std::invalid_argument("Deposit amount must be positive");
-    }
-    balance += amount;
-}
+This repository is a merger of the formerly separate GoogleTest and GoogleMock
+projects. These were so closely related that it makes sense to maintain and
+release them together.
 
-bool Account::withdraw(double amount) {
-    if (amount <= 0) {
-        throw std::invalid_argument("Withdraw amount must be positive");
-    }
-    if (amount > balance) {
-        return false;
-    }
-    balance -= amount;
-    return true;
-}
+### Getting Started
 
-double Account::getBalance() const {
-    return balance;
-}
+See the [GoogleTest User's Guide](https://google.github.io/googletest/) for
+documentation. We recommend starting with the
+[GoogleTest Primer](https://google.github.io/googletest/primer.html).
 
-std::string Account::getId() const {
-    return id;
-}
-```
-#### Transaction.h
-```
-#pragma once
-#include "Account.h"
-#include <string>
+More information about building GoogleTest can be found at
+[googletest/README.md](googletest/README.md).
 
-class Transaction {
-private:
-    std::string fromId;
-    std::string toId;
-    double amount;
-    bool completed;
-public:
-    Transaction(const std::string& from, const std::string& to, double amount);
-    bool execute(Account& from, Account& to);
-    bool isCompleted() const;
-    double getAmount() const;
-};
-```
-#### Transaction.cpp
-```
-#include "Transaction.h"
-#include <stdexcept>
+## Features
 
-Transaction::Transaction(const std::string& from, const std::string& to, double amount)
-    : fromId(from), toId(to), amount(amount), completed(false) {
-    if (amount <= 0) {
-        throw std::invalid_argument("Transaction amount must be positive");
-    }
-}
+*   xUnit test framework: \
+    Googletest is based on the [xUnit](https://en.wikipedia.org/wiki/XUnit)
+    testing framework, a popular architecture for unit testing
+*   Test discovery: \
+    Googletest automatically discovers and runs your tests, eliminating the need
+    to manually register your tests
+*   Rich set of assertions: \
+    Googletest provides a variety of assertions, such as equality, inequality,
+    exceptions, and more, making it easy to test your code
+*   User-defined assertions: \
+    You can define your own assertions with Googletest, making it simple to
+    write tests that are specific to your code
+*   Death tests: \
+    Googletest supports death tests, which verify that your code exits in a
+    certain way, making it useful for testing error-handling code
+*   Fatal and non-fatal failures: \
+    You can specify whether a test failure should be treated as fatal or
+    non-fatal with Googletest, allowing tests to continue running even if a
+    failure occurs
+*   Value-parameterized tests: \
+    Googletest supports value-parameterized tests, which run multiple times with
+    different input values, making it useful for testing functions that take
+    different inputs
+*   Type-parameterized tests: \
+    Googletest also supports type-parameterized tests, which run with different
+    data types, making it useful for testing functions that work with different
+    data types
+*   Various options for running tests: \
+    Googletest provides many options for running tests including running
+    individual tests, running tests in a specific order and running tests in
+    parallel
 
-bool Transaction::execute(Account& from, Account& to) {
-    if (completed) {
-        return false;
-    }
-    
-    if (from.getId() != fromId || to.getId() != toId) {
-        return false;
-    }
-    
-    if (from.withdraw(amount)) {
-        to.deposit(amount);
-        completed = true;
-        return true;
-    }
-    return false;
-}
+## Supported Platforms
 
-bool Transaction::isCompleted() const {
-    return completed;
-}
+GoogleTest follows Google's
+[Foundational C++ Support Policy](https://opensource.google/documentation/policies/cplusplus-support).
+See
+[this table](https://github.com/google/oss-policies-info/blob/main/foundational-cxx-support-matrix.md)
+for a list of currently supported versions of compilers, platforms, and build
+tools.
 
-double Transaction::getAmount() const {
-    return amount;
-}
-```
-#### banking/CMakeLists.txt
-```
-add_library(banking STATIC Account.cpp Transaction.cpp)
-target_include_directories(banking PUBLIC .)
-install(TARGETS banking ARCHIVE DESTINATION lib)
-install(FILES Account.h Transaction.h DESTINATION include)
-```
-### 2.3. Создание модульных тестов
+## Who Is Using GoogleTest?
 
-Тесты размещены в директории tests/:
-```
-tests/
-├── test_account.cpp      # тесты для класса Account
-└── test_transaction.cpp  # тесты для класса
-```
-Transaction
+In addition to many internal projects at Google, GoogleTest is also used by the
+following notable projects:
 
-#### test_account.cpp
-```
-#include <gtest/gtest.h>
-#include "Account.h"
+*   The [Chromium projects](http://www.chromium.org/) (behind the Chrome browser
+    and Chrome OS).
+*   The [LLVM](http://llvm.org/) compiler.
+*   [Protocol Buffers](https://github.com/google/protobuf), Google's data
+    interchange format.
+*   The [OpenCV](http://opencv.org/) computer vision library.
 
-TEST(AccountTest, ConstructorInitializesBalance) {
-    Account acc("123", 100.0);
-    EXPECT_EQ(acc.getBalance(), 100.0);
-    EXPECT_EQ(acc.getId(), "123");
-}
+## Related Open Source Projects
 
-TEST(AccountTest, DepositIncreasesBalance) {
-    Account acc("123", 100.0);
-    acc.deposit(50.0);
-    EXPECT_EQ(acc.getBalance(), 150.0);
-}
+[GTest Runner](https://github.com/nholthaus/gtest-runner) is a Qt5 based
+automated test-runner and Graphical User Interface with powerful features for
+Windows and Linux platforms.
 
-TEST(AccountTest, DepositNegativeThrows) {
-    Account acc("123", 100.0);
-    EXPECT_THROW(acc.deposit(-10.0), std::invalid_argument);
-}
+[GoogleTest UI](https://github.com/ospector/gtest-gbar) is a test runner that
+runs your test binary, allows you to track its progress via a progress bar, and
+displays a list of test failures. Clicking on one shows failure text. GoogleTest
+UI is written in C#.
 
-TEST(AccountTest, WithdrawDecreasesBalance) {
-    Account acc("123", 100.0);
-    bool success = acc.withdraw(30.0);
-    EXPECT_TRUE(success);
-    EXPECT_EQ(acc.getBalance(), 70.0);
-}
+[GTest TAP Listener](https://github.com/kinow/gtest-tap-listener) is an event
+listener for GoogleTest that implements the
+[TAP protocol](https://en.wikipedia.org/wiki/Test_Anything_Protocol) for test
+result output. If your test runner understands TAP, you may find it useful.
 
-TEST(AccountTest, WithdrawMoreThanBalanceFails) {
-    Account acc("123", 100.0);
-    bool success = acc.withdraw(150.0);
-    EXPECT_FALSE(success);
-    EXPECT_EQ(acc.getBalance(), 100.0);
-}
+[gtest-parallel](https://github.com/google/gtest-parallel) is a test runner that
+runs tests from your binary in parallel to provide significant speed-up.
 
-TEST(AccountTest, WithdrawNegativeThrows) {
-    Account acc("123", 100.0);
-    EXPECT_THROW(acc.withdraw(-10.0), std::invalid_argument);
-}
-```
-#### test_transaction.cpp
-```
-#include <gtest/gtest.h>
-#include "Account.h"
-#include "Transaction.h"
+[GoogleTest Adapter](https://marketplace.visualstudio.com/items?itemName=DavidSchuldenfrei.gtest-adapter)
+is a VS Code extension allowing to view GoogleTest in a tree view and run/debug
+your tests.
 
-TEST(TransactionTest, ExecuteTransfersMoney) {
-    Account from("A", 100.0);
-    Account to("B", 0.0);
-    Transaction tx("A", "B", 50.0);
-    
-    bool success = tx.execute(from, to);
-    
-    EXPECT_TRUE(success);
-    EXPECT_TRUE(tx.isCompleted());
-    EXPECT_EQ(from.getBalance(), 50.0);
-    EXPECT_EQ(to.getBalance(), 50.0);
-}
+[C++ TestMate](https://github.com/matepek/vscode-catch2-test-adapter) is a VS
+Code extension allowing to view GoogleTest in a tree view and run/debug your
+tests.
 
-TEST(TransactionTest, ExecuteFailsIfInsufficientFunds) {
-    Account from("A", 30.0);
-    Account to("B", 0.0);
-    Transaction tx("A", "B", 50.0);
-    
-    bool success = tx.execute(from, to);
-    
-    EXPECT_FALSE(success);
-    EXPECT_FALSE(tx.isCompleted());
-    EXPECT_EQ(from.getBalance(), 30.0);
-    EXPECT_EQ(to.getBalance(), 0.0);
-}
+[Cornichon](https://pypi.org/project/cornichon/) is a small Gherkin DSL parser
+that generates stub code for GoogleTest.
 
-TEST(TransactionTest, ExecuteFailsIfAlreadyCompleted) {
-    Account from("A", 100.0);
-    Account to("B", 0.0);
-    Transaction tx("A", "B", 50.0);
-    
-    tx.execute(from, to);
-    bool second = tx.execute(from, to);
-    
-    EXPECT_FALSE(second);
-}
+## Contributing Changes
 
-TEST(TransactionTest, ExecuteFailsWithWrongAccounts) {
-    Account from1("A", 100.0);
-    Account to1("B", 0.0);
-    Account from2("C", 100.0);
-    Account to2("D", 0.0);
-    Transaction tx("A", "B", 50.0);
-    
-    bool success = tx.execute(from2, to2);
-    
-    EXPECT_FALSE(success);
-}
-```
-### 2.4. Настройка корневого CMakeLists.txt
-```
-cmake_minimum_required(VERSION 3.10)
-project(-05l)
+Please read
+[`CONTRIBUTING.md`](https://github.com/google/googletest/blob/main/CONTRIBUTING.md)
+for details on how to contribute to this project.
 
-option(BUILD_TESTS "Build tests" OFF)
-
-add_subdirectory(banking)
-
-if(BUILD_TESTS)
-    enable_testing()
-    add_subdirectory(third-party/gtest)
-    
-    add_executable(check tests/test_account.cpp tests/test_transaction.cpp)
-    target_link_libraries(check banking gtest_main)
-    target_include_directories(check PRIVATE banking)
-    
-    add_test(NAME check COMMAND check)
-endif()
-```
-### 2.5. Настройка GitHub Actions
-
-Файл .github/workflows/linux.yml:
-
-name: Linux CI (gcc & clang)
-```
-on:
-  push:
-    branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        compiler: [gcc, clang]
-    env:
-      CC: ${{ matrix.compiler }}
-      CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake build-essential lcov
-      
-      - name: Configure with tests
-        run: cmake -H. -B_build -DBUILD_TESTS=ON
-      
-      - name: Build
-        run: cmake --build _build
-      
-      - name: Run tests
-        run: cmake --build _build --target test -- ARGS=--verbose
-      
-      - name: Generate coverage report
-        run: |
-          cd _build
-          lcov --capture --directory . --output-file coverage.info --no-external
-          lcov --remove coverage.info '/usr/*' '*/third-party/*'
-'*/tests/*' --output-file coverage_filtered.info
-      
-      - name: Upload to Coveralls
-        uses: coverallsapp/github-action@v2
-        with:
-          file: _build/coverage_filtered.info
-```
-### 2.6. Настройка Coveralls.io
-
-1. Зарегистрировался на https://coveralls.io через GitHub
-2. Добавил репозиторий Tagir-iu/-05
-3. Включил автоматическую отправку покрытия
-
-
-
-## 3. Результаты
-
-### 3.1. Результаты тестирования
-
-Все тесты успешно пройдены:
-```
-[==========] Running 10 tests from 2 test suites.
-[----------] 6 tests from AccountTest
-[ RUN      ] AccountTest.ConstructorInitializesBalance
-[       OK ] AccountTest.ConstructorInitializesBalance (0 ms)
-[ RUN      ] AccountTest.DepositIncreasesBalance
-[       OK ] AccountTest.DepositIncreasesBalance (0 ms)
-[ RUN      ] AccountTest.DepositNegativeThrows
-[       OK ] AccountTest.DepositNegativeThrows (0 ms)
-[ RUN      ] AccountTest.WithdrawDecreasesBalance
-[       OK ] AccountTest.WithdrawDecreasesBalance (0 ms)
-[ RUN      ] AccountTest.WithdrawMoreThanBalanceFails
-[       OK ] AccountTest.WithdrawMoreThanBalanceFails (0 ms)
-[ RUN      ] AccountTest.WithdrawNegativeThrows
-[       OK ] AccountTest.WithdrawNegativeThrows (0 ms)
-[----------] 6 tests from AccountTest (0 ms total)
-
-[----------] 4 tests from TransactionTest
-[ RUN      ] TransactionTest.ExecuteTransfersMoney
-[       OK ] TransactionTest.ExecuteTransfersMoney (0 ms)
-[ RUN      ] TransactionTest.ExecuteFailsIfInsufficientFunds
-[       OK ] TransactionTest.ExecuteFailsIfInsufficientFunds (0 ms)
-[ RUN      ] TransactionTest.ExecuteFailsIfAlreadyCompleted
-[       OK ] TransactionTest.ExecuteFailsIfAlreadyCompleted (0 ms)
-[ RUN      ] TransactionTest.ExecuteFailsWithWrongAccounts
-[       OK ] TransactionTest.ExecuteFailsWithWrongAccounts (0 ms)
-[----------] 4 tests from TransactionTest (0 ms total)
-
-[==========] 10 tests from 2 test suites ran. (0 ms total)
-[  PASSED  ] 10 tests.
-```
-### 3.2. Покрытие кода
-
-Покрытие кода составляет 100% (все строки кода библиотеки banking покрыты тестами).
-Репозиторий с выполненной работой: https://github.com/Tagir-iu/lab-repository/tree/main/lab05
+Happy testing!
