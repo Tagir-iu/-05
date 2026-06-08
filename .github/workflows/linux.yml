@@ -27,7 +27,7 @@ jobs:
           sudo apt-get install -y cmake build-essential lcov
 
       - name: Configure with tests
-        run: cmake -H. -B_build -DBUILD_TESTS=ON -DCMAKE_CXX_FLAGS="--coverage"
+        run: cmake -H. -B_build -DBUILD_TESTS=ON -DCMAKE_CXX_FLAGS="--coverage" -DCMAKE_EXE_LINKER_FLAGS="--coverage"
 
       - name: Build
         run: cmake --build _build
@@ -37,8 +37,16 @@ jobs:
 
       - name: Generate coverage report
         run: |
-          lcov --directory _build --capture --output-file coverage.info
-          # Исключаем системные файлы и папки тестов/сторонних библиотек из отчета
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            echo '#!/bin/sh' > llvm-gcov.sh
+            echo 'exec llvm-cov gcov "$@"' >> llvm-gcov.sh
+            chmod +x llvm-gcov.sh
+            GCOV_ARG="--gcov-tool $(pwd)/llvm-gcov.sh"
+          else
+            GCOV_ARG=""
+          fi
+
+          lcov --directory _build --capture --output-file coverage.info $GCOV_ARG
           lcov --remove coverage.info '/usr/*' '*/third-party/*' '*/tests/*' --output-file coverage.info
           lcov --list coverage.info
 
