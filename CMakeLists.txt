@@ -1,12 +1,20 @@
-cmake_minimum_required(VERSION 3.14)
-project(Lab05)
+cmake_minimum_required(VERSION 3.10)
+project(lab05)
 
+option(BUILD_TESTS "Build tests" OFF)
 
-enable_testing()
+add_subdirectory(banking)
 
-add_subdirectory(third-party/gtest)
-add_subdirectory(formatter_lib)
-add_subdirectory(solver_lib)
-
-
-add_subdirectory(tests)
+if(BUILD_TESTS)
+    enable_testing()
+    
+    # Подключаем GTest напрямую
+    add_subdirectory(third-party/gtest)
+    
+    # Создаем тесты
+    add_executable(check tests/test_account.cpp tests/test_transaction.cpp)
+    target_link_libraries(check banking gtest gtest_main pthread)
+    target_include_directories(check PRIVATE banking third-party/gtest/googletest/include)
+    
+    add_test(NAME check COMMAND check)
+endif()
