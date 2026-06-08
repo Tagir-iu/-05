@@ -1,0 +1,31 @@
+name: Linux CI (gcc & clang)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        compiler: [gcc, clang]
+    env:
+      CC: ${{ matrix.compiler }}
+      CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+      
+      - name: Configure with tests
+        run: cmake -H. -B_build -DBUILD_TESTS=ON
+      
+      - name: Build
+        run: cmake --build _build
+      
+      - name: Run tests
+        run: ctest --test-dir _build --output-on-failure
