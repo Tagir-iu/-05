@@ -9,61 +9,23 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-
     strategy:
       matrix:
         compiler: [gcc, clang]
-
     env:
       CC: ${{ matrix.compiler }}
       CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
-
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake build-essential lcov
-
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+      
       - name: Configure with tests
-        run: cmake -H. -B_build -DBUILD_TESTS=ON -DCMAKE_CXX_FLAGS="--coverage" -DCMAKE_EXE_LINKER_FLAGS="--coverage"
-
+        run: cmake -H. -B_build -DBUILD_TESTS=ON
+      
       - name: Build
         run: cmake --build _build
-
+      
       - name: Run tests
         run: ctest --test-dir _build --output-on-failure
-
-      - name: Generate coverage report
-        run: |
-          if [ "${{ matrix.compiler }}" = "clang" ]; then
-            echo '#!/bin/sh' > llvm-gcov.sh
-            echo 'exec llvm-cov gcov "$@"' >> llvm-gcov.sh
-            chmod +x llvm-gcov.sh
-            GCOV_ARG="--gcov-tool $(pwd)/llvm-gcov.sh"
-          else
-            GCOV_ARG=""
-          fi
-
-          lcov --directory _build --capture --output-file coverage.info $GCOV_ARG
-          lcov --remove coverage.info '/usr/*' '*/third-party/*' '*/tests/*' --output-file coverage.info
-          lcov --list coverage.info
-
-      - name: Upload to Coveralls
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          file: coverage.info
-          flag-name: ${{ matrix.compiler }}
-          parallel: true
-
-  finish:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Close Coveralls parallel build
-        uses: coverallsapp/github-action@v2
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          parallel-finished: true
