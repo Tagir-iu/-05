@@ -1,5 +1,5 @@
 # Отчет по лабораторной работе №5
-ИНТЕГРАЦИЯ ci/cd: [![Coverage Status](https://coveralls.io/repos/github/Tagir-iu/-05/badge.svg?branch=main)](https://coveralls.io/github/Tagir-iu/-05?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/Tagir-iu/-05/badge.svg?branch=main)](https://coveralls.io/github/Tagir-iu/-05?branch=main)
 [![Linux CI (gcc & clang)](https://github.com/Tagir-iu/-05/actions/workflows/linux.yml/badge.svg?branch=main)](https://github.com/Tagir-iu/-05/actions/workflows/linux.yml)
 
 **Студент:** Tagir-iu
