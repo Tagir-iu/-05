@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.14)
 project(Lab05)
 
+
+enable_testing()
+
 add_subdirectory(third-party/gtest)
-add_executable(main main.cpp)
-target_link_libraries(main gtest_main)
+add_subdirectory(formatter_lib)
+add_subdirectory(solver_lib)
+
+
+add_subdirectory(tests)
