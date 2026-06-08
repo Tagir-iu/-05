@@ -255,21 +255,35 @@ TEST(TransactionTest, ExecuteFailsWithWrongAccounts) {
 ```
 ### 2.4. Настройка корневого CMakeLists.txt
 ```
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14)
 project(lab05)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_TESTS "Build tests" OFF)
 
+# Подключаем основную библиотеку
 add_subdirectory(banking)
 
 if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(third-party/gtest)
-    
+
+    # Создаем исполняемый файл тестов
     add_executable(check tests/test_account.cpp tests/test_transaction.cpp)
-    target_link_libraries(check banking gtest_main)
+
+    # Привязываем библиотеки в правильном для Clang порядке
+    target_link_libraries(check gtest_main banking)
     target_include_directories(check PRIVATE banking)
+
+    # Включаем покрытие БЕЗОПАСНО — только для тестов и самой библиотеки banking
+    target_compile_options(check PRIVATE --coverage)
+    target_link_options(check PRIVATE --coverage)
     
+    target_compile_options(banking PRIVATE --coverage)
+    target_link_options(banking PRIVATE --coverage)
+
     add_test(NAME check COMMAND check)
 endif()
 ```
@@ -279,6 +293,8 @@ endif()
 
 name: Linux CI (gcc & clang)
 ```
+name: Linux CI (gcc & clang)
+
 on:
   push:
     branches: [ main, master ]
@@ -288,40 +304,65 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     strategy:
       matrix:
         compiler: [gcc, clang]
+
     env:
       CC: ${{ matrix.compiler }}
       CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
+
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      
+
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake build-essential lcov
-      
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential lcov llvm
+
       - name: Configure with tests
+        # Убрали флаги отсюда, чтобы не ломать инициализацию Clang
         run: cmake -H. -B_build -DBUILD_TESTS=ON
-      
+
       - name: Build
         run: cmake --build _build
-      
+
       - name: Run tests
-        run: cmake --build _build --target test -- ARGS=--verbose
-      
+        run: ctest --test-dir _build --output-on-failure
+
       - name: Generate coverage report
         run: |
-          cd _build
-          lcov --capture --directory . --output-file coverage.info --no-external
-          lcov --remove coverage.info '/usr/*' '*/third-party/*'
-'*/tests/*' --output-file coverage_filtered.info
-      
+          if [ "${{ matrix.compiler }}" = "clang" ]; then
+            echo '#!/bin/sh' > llvm-gcov.sh
+            echo 'exec llvm-cov gcov "$@"' >> llvm-gcov.sh
+            chmod +x llvm-gcov.sh
+            GCOV_ARG="--gcov-tool $(pwd)/llvm-gcov.sh"
+          else
+            GCOV_ARG=""
+          fi
+
+          lcov --directory _build --capture --output-file coverage.info $GCOV_ARG
+          lcov --remove coverage.info '/usr/*' '*/third-party/*' '*/tests/*' --output-file coverage.info
+          lcov --list coverage.info
+
       - name: Upload to Coveralls
         uses: coverallsapp/github-action@v2
         with:
-          file: _build/coverage_filtered.info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: coverage.info
+          flag-name: ${{ matrix.compiler }}
+          parallel: true
+
+  finish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close Coveralls parallel build
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
 ```
 ### 2.6. Настройка Coveralls.io
 
@@ -369,4 +410,4 @@ jobs:
 ```
 ### 3.2. Покрытие кода
 
-Покрытие кода составляет 100% (все строки кода библиотеки banking покрыты тестами).
+Покрытие кода составляет 92%
