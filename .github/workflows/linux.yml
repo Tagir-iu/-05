@@ -9,23 +9,53 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     strategy:
       matrix:
         compiler: [gcc, clang]
+
     env:
       CC: ${{ matrix.compiler }}
       CXX: ${{ matrix.compiler == 'gcc' && 'g++' || 'clang++' }}
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
-      
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential lcov
+
       - name: Configure with tests
-        run: cmake -H. -B_build -DBUILD_TESTS=ON
-      
+        run: cmake -H. -B_build -DBUILD_TESTS=ON -DCMAKE_CXX_FLAGS="--coverage"
+
       - name: Build
         run: cmake --build _build
-      
+
       - name: Run tests
         run: ctest --test-dir _build --output-on-failure
+
+      - name: Generate coverage report
+        run: |
+          lcov --directory _build --capture --output-file coverage.info
+          # Исключаем системные файлы и папки тестов/сторонних библиотек из отчета
+          lcov --remove coverage.info '/usr/*' '*/third-party/*' '*/tests/*' --output-file coverage.info
+          lcov --list coverage.info
+
+      - name: Upload to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: coverage.info
+          flag-name: ${{ matrix.compiler }}
+          parallel: true
+
+  finish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close Coveralls parallel build
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
