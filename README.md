@@ -1,4 +1,5 @@
 # Отчет по лабораторной работе №5
+##Интеграция ci/cd: [![Coverage Status](https://coveralls.io/repos/github/Tagir-iu/-05/badge.svg?branch=main)](https://coveralls.io/github/Tagir-iu/-05?branch=main)
 
 **Студент:** Tagir-iu
 **Тема:** Модульное тестирование с GTest и Coveralls.io
